@@ -1,0 +1,140 @@
+---
+title: "3dayGroup3fitAndPlot"
+author: "Alex Holcombe"
+date: "2/8/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r load_and_clean}
+load( file.path("dataRaw",'three_day.RData') )
+library(dplyr)
+
+#mixRSVP requires that dataframe that must have fields targetSP and SPE
+names(three_day)[names(three_day) == 'TargPos'] <- 'targetSP'
+names(three_day)[names(three_day) == 'Distance'] <- 'SPE'
+#group 3 were trained on all serial positions
+three3<- three_day %>% filter(Group==3)
+# for the 3-Day condition, the training blocks (all serial positions 3-14) were
+# blocks 2-7, 9-14, and 16-18  (blocks 1, 8, and 15 were "practice blocks" of 10 or so trials). 
+blocks<-c(2:7,9:14,16:18) #training blocks for group 3
+three3t <- three3 %>% filter(Block %in% blocks)
+#Exclude trials where target was not presented
+three3t <- three3t %>% filter(targetSP != 0)
+#Exclude other cases where SPE not applicable
+#Response.Pos == False indicates either		a) the participant reported "0"
+# b) there was no target on that trial
+# c) the participant reported a stimulus that was not presented
+three3t <- three3t %>% filter(Response.Pos != FALSE)
+
+
+data <-three3t
+numItemsInStream<- 16 #from their Methods section  
+# SOA of 80 ms
+#blue letter but were unsure what it was.  Participants responded using the 0 (zero) key to indicate that there was no blue letter on the catch trials.  
+df<-data
+```
+
+```{r detailsNeededForMixtureModeling}
+library(mixRSVP)
+
+plotContinuousGaussian<-TRUE
+annotateIt<-TRUE
+minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
+maxSPE<- 13 #targetSP = 3 and response position is 16```
+```
+
+Fit mixture model to whole dataset.
+
+```{r}
+
+condtnVariableNames <- c("Subject")  
+
+#Check whether already have parameter estimates or instead need to do it
+calculate<-FALSE
+paste('calculate=',calculate)
+if (!exists("estimates"))  { 
+  calculate<-TRUE
+} else if (length(estimates)==0) { #maybe fitting screwed up last time and estimates length 0
+  calculate<-TRUE
+}
+
+#df<- df %>% dplyr::filter(subject<="AG")
+
+if (calculate) {
+  estimates<- df %>%  
+    group_by_(.dots = condtnVariableNames) %>%  #.dots needed when you have a variable containing multiple factor names
+    do(  analyzeOneConditionDF(.,numItemsInStream,parameterBounds(), nReplicates=3)  )
+}
+head(estimates)
+```
+
+Plot all data with fits. 
+
+I think you can't put it all into a single plot by calling plot_hist_with_fit multiple times because it returns a plot object, then would have to use grid or something to combine the plots.
+
+So, the method here is to calculate the fitted curves separately and then add them on. There should be a more integrated way to do that but then it might be harder to probe when fits go wrong?
+
+First calculate the fitted curves.
+
+```{r, echo=FALSE, message=TRUE, fig.height=36, fig.width=10}
+#want fig.height of 10 per subject
+
+#Add R parameter estimates to dataframe
+dg<- merge(df,estimates) 
+
+curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
+  do(calc_curves_dataframes(.,minSPE,maxSPE,numItemsInStream))
+
+```
+
+Now calculate the number of observations in each condition, which is used for scaling the pseudo-continuous (fine-grained) Gaussian. Then calculate that Gaussian curve.
+
+```{r, echo=FALSE, message=TRUE}
+
+#Calc numObservations to each condition. This is needed only for scaling the fine-grained Gaussian
+#Calc the number of observations for each condition, because gaussianScaledforData needs to know.
+dfGroups<- dg %>% group_by_at(.vars = condtnVariableNames) %>% summarise(nPerCond = n())
+#add nPerCond back to parameter estimates
+estimates<- merge(estimates,dfGroups)
+
+
+grain<-.05
+gaussFine<- estimates %>% group_by_at(.vars = condtnVariableNames) %>% do(
+  gaussian_scaled_from_df(.,minSPE,maxSPE,grain) )
+```
+
+```{r, echo=FALSE, message=TRUE, fig.height=36, fig.width=10, fig.cap = "Left target (first column) and right target (second column). Each subject gets two rows, one for upright letter trials, one for inverted letter trials."}
+
+#PLOT EVERYTHING
+g=ggplot(dg, aes(x=SPE)) + facet_wrap(~Subject,  scales="free_y")
+g<-g+geom_histogram(binwidth=1,color="grey90") + xlim(minSPE,maxSPE)
+g<-g +theme_apa() #+theme(panel.grid.minor=element_blank(),panel.grid.major=element_blank())# hide all gridlines.
+#g<-g+ theme(line=element_blank(), panel.border = element_blank())
+sz=.8
+#Plot the underlying Gaussian , not just the discretized Gaussian. But it's way too tall. I don't know if this is 
+#a scaling problem or what actually is going on.
+#g<-g + geom_line(data=gaussFine,aes(x=x,y=gaussianFreq),color="darkblue",size=1.2)
+
+g<-g+ geom_point(data=curves,aes(x=x,y=combinedFitFreq),color="chartreuse3",size=sz*2.5)
+g<-g+ geom_line(data=curves,aes(x=x,y=guessingFreq),color="yellow",size=sz)
+#Discretized Gaussian
+g<-g+ geom_line(data=curves,aes(x=x,y=gaussianFreq),color="lightblue",size=sz)
+
+numGroups<- nrow(dfGroups)
+fontSz = 3 #100/numGroups
+g<-g + geom_text(data=curves,aes(x=-9,y=32, label = paste("--logLik==", round(val,1), sep = "")),  parse = TRUE,size=fontSz) +
+  geom_text(data=curves,aes(x=-7,y=28, label = paste("plain(e)==", round(efficacy,2), sep = "")),  parse = TRUE,size=fontSz) +
+  geom_text(data=curves,aes(x=-7,y=25, label = paste("mu==", round(latency,2), sep = "")),  parse = TRUE,size=fontSz)+
+  geom_text(data=curves,aes(x=-7,y=22, label = paste("sigma==", round(precision,2), sep = "")),  parse = TRUE,size=fontSz)
+show(g)
+```
