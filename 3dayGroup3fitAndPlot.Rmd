@@ -9,11 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Load some data.
 
 ```{r load_and_clean}
 load( file.path("dataRaw",'three_day.RData') )
@@ -44,18 +40,19 @@ numItemsInStream<- 16 #from their Methods section
 df<-data
 ```
 
+Set up the experiment-specific parameters 
+
 ```{r detailsNeededForMixtureModeling}
 library(mixRSVP)
 
-plotContinuousGaussian<-TRUE
 annotateIt<-TRUE
 minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
 maxSPE<- 13 #targetSP = 3 and response position is 16```
 ```
 
-Fit mixture model to whole dataset.
+Fit mixture model to whole dataset and print a bit of the results
 
-```{r}
+```{r, echo=FALSE, message=TRUE}
 
 condtnVariableNames <- c("Subject")  
 
@@ -86,7 +83,7 @@ So, the method here is to calculate the fitted curves separately and then add th
 
 First calculate the fitted curves.
 
-```{r, echo=FALSE, message=TRUE, fig.height=36, fig.width=10}
+```{r, echo=TRUE, message=TRUE, fig.height=36, fig.width=10}
 #want fig.height of 10 per subject
 
 #Add R parameter estimates to dataframe
@@ -99,7 +96,7 @@ curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>%
 
 Now calculate the number of observations in each condition, which is used for scaling the pseudo-continuous (fine-grained) Gaussian. Then calculate that Gaussian curve.
 
-```{r, echo=FALSE, message=TRUE}
+```{r, echo=TRUE, message=TRUE}
 
 #Calc numObservations to each condition. This is needed only for scaling the fine-grained Gaussian
 #Calc the number of observations for each condition, because gaussianScaledforData needs to know.
@@ -113,10 +110,13 @@ gaussFine<- estimates %>% group_by_at(.vars = condtnVariableNames) %>% do(
   gaussian_scaled_from_df(.,minSPE,maxSPE,grain) )
 ```
 
-```{r, echo=FALSE, message=TRUE, fig.height=36, fig.width=10, fig.cap = "Left target (first column) and right target (second column). Each subject gets two rows, one for upright letter trials, one for inverted letter trials."}
+Plot histogram and fit for each subject 
 
-#PLOT EVERYTHING
-g=ggplot(dg, aes(x=SPE)) + facet_wrap(~Subject,  scales="free_y")
+```{r, echo=FALSE, message=TRUE, fig.height=12, fig.width=10, fig.cap = "Left target (first column) and right target (second column). Each subject gets two rows, one for upright letter trials, one for inverted letter trials."}
+plotContinuousGaussian<-TRUE
+
+library(ggplot2)
+g=ggplot(dg, aes(x=SPE)) + facet_wrap(~Subject,ncol=3)#,  scales="free_y")
 g<-g+geom_histogram(binwidth=1,color="grey90") + xlim(minSPE,maxSPE)
 g<-g +theme_apa() #+theme(panel.grid.minor=element_blank(),panel.grid.major=element_blank())# hide all gridlines.
 #g<-g+ theme(line=element_blank(), panel.border = element_blank())
@@ -132,9 +132,13 @@ g<-g+ geom_line(data=curves,aes(x=x,y=gaussianFreq),color="lightblue",size=sz)
 
 numGroups<- nrow(dfGroups)
 fontSz = 3 #100/numGroups
-g<-g + geom_text(data=curves,aes(x=-9,y=32, label = paste("--logLik==", round(val,1), sep = "")),  parse = TRUE,size=fontSz) +
-  geom_text(data=curves,aes(x=-7,y=28, label = paste("plain(e)==", round(efficacy,2), sep = "")),  parse = TRUE,size=fontSz) +
-  geom_text(data=curves,aes(x=-7,y=25, label = paste("mu==", round(latency,2), sep = "")),  parse = TRUE,size=fontSz)+
-  geom_text(data=curves,aes(x=-7,y=22, label = paste("sigma==", round(precision,2), sep = "")),  parse = TRUE,size=fontSz)
+yLimMax<-layer_scales(g)$y$range$range[2]
+ys<- yLimMax * .75 * c(1,.8,.7,.6) #height of each text annotation
+dY<- max(.1*yLimMax, 3) #make sure y offset of text annotations is at least 3 so don't overlap
+ys<- yLimMax - (0:3)*dY
+g<-g + geom_text(data=curves,aes(x=-9,y=ys[1], label = paste("-logLik==", round(val,1), sep = "")),  parse = TRUE,size=fontSz) +
+  geom_text(data=curves,aes(x=-7,y=ys[2], label = paste("plain(e)==", round(efficacy,2), sep = "")),  parse = TRUE,size=fontSz) +
+  geom_text(data=curves,aes(x=-7,y=ys[3], label = paste("mu==", round(latency,2), sep = "")),  parse = TRUE,size=fontSz)+
+  geom_text(data=curves,aes(x=-7,y=ys[4], label = paste("sigma==", round(precision,2), sep = "")),  parse = TRUE,size=fontSz)
 show(g)
 ```
