@@ -1,0 +1,30 @@
+---
+title: "Overview"
+author: "Alex Holcombe"
+date: "2/21/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+There are both "training" blocks, "practice" blocks (1,8,15, which I think were the first block of each day?), and "transfer" blocks (vary with day condition).
+
+
+Targets were in serial positions 3-14 for Group 3 in the training sessions.  Blocks 2-4 correspond to training for the 1-Day condition, 2-7 and 9-11 for the 2-Day condition, and blocks 2-7, 9-14, and 16-18 for the 3-Day condition (blocks 1, 8, and 15 were "practice blocks" of 10 or so trials).  So, Group 3 of the 3-Day condition would have the most data if you want target positions to be randomized.
+
+
+We would also want to have the parameters for transfer for each target position (4, 7, 10, 13) separately from the training phase. This would be for the 1-, 2-, and 3-day conditions.
+
+Finally, we would like to have parameters for the last epoch of training for each subject in the 1-, 2-, and 3-day conditions. An epoch is defined as 3 blocks.
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

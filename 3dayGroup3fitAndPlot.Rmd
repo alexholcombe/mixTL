@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Load some data.
+Load some data. Group 3 means all serial positions were used.
 
 ```{r load_and_clean}
 load( file.path("dataRaw",'three_day.RData') )
@@ -40,10 +40,16 @@ numItemsInStream<- 16 #from their Methods section
 df<-data
 ```
 
+Install the mixture modeling R library
+```{r install}
+#devtools::install_github('alexholcombe/mixRSVP',build_vignettes=TRUE)  #If want latest version
+library(mixRSVP)
+
+```
+
 Set up the experiment-specific parameters 
 
 ```{r detailsNeededForMixtureModeling}
-library(mixRSVP)
 
 annotateIt<-TRUE
 minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
@@ -90,7 +96,7 @@ First calculate the fitted curves.
 dg<- merge(df,estimates) 
 
 curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
-  do(calc_curves_dataframes(.,minSPE,maxSPE,numItemsInStream))
+  do(calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream))
 
 ```
 
@@ -130,15 +136,16 @@ g<-g+ geom_line(data=curves,aes(x=x,y=guessingFreq),color="yellow",size=sz)
 #Discretized Gaussian
 g<-g+ geom_line(data=curves,aes(x=x,y=gaussianFreq),color="lightblue",size=sz)
 
-numGroups<- nrow(dfGroups)
-fontSz = 3 #100/numGroups
-yLimMax<-layer_scales(g)$y$range$range[2]
-ys<- yLimMax * .75 * c(1,.8,.7,.6) #height of each text annotation
-dY<- max(.1*yLimMax, 3) #make sure y offset of text annotations is at least 3 so don't overlap
-ys<- yLimMax - (0:3)*dY
-g<-g + geom_text(data=curves,aes(x=-9,y=ys[1], label = paste("-logLik==", round(val,1), sep = "")),  parse = TRUE,size=fontSz) +
-  geom_text(data=curves,aes(x=-7,y=ys[2], label = paste("plain(e)==", round(efficacy,2), sep = "")),  parse = TRUE,size=fontSz) +
-  geom_text(data=curves,aes(x=-7,y=ys[3], label = paste("mu==", round(latency,2), sep = "")),  parse = TRUE,size=fontSz)+
-  geom_text(data=curves,aes(x=-7,y=ys[4], label = paste("sigma==", round(precision,2), sep = "")),  parse = TRUE,size=fontSz)
+curves <- dplyr::mutate(curves, mixSig = ifelse(pLRtest <= .05, TRUE, FALSE)) #annotate_fit uses this to color the p-value
+g<- annotate_fit(g,curves) #assumes curvesDf includes efficacy,latency,precision, optionally lr
+#Somehow the which mixSig (TRUE or FALSE) is red and which green is flipped relative to plot_hist_with_fit even though
+#identical commands are used. I haven't been able to work out why.
+
+#g<-g + geom_text(data=curves,aes(x=-9,y=ys[1], label = paste("-logLik==", round(val,1), sep = "")),  parse = TRUE,size=fontSz) +
+#  geom_text(data=curves,aes(x=-7,y=ys[2], label = paste("plain(e)==", round(efficacy,2), sep = "")),  parse = TRUE,size=fontSz) +
+#  geom_text(data=curves,aes(x=-7,y=ys[3], label = paste("mu==", round(latency,2), sep = "")),  parse = TRUE,size=fontSz)+
+#  geom_text(data=curves,aes(x=-7,y=ys[4], label = paste("sigma==", round(precision,2), sep = "")),  parse = TRUE,size=fontSz)
 show(g)
 ```
+
+Inspect strange case of subject #915
