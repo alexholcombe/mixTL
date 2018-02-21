@@ -1,0 +1,60 @@
+---
+title: "analyzeAll"
+author: "Alex Holcombe"
+date: "2/21/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load data and wrangle into one dataframe.
+```{r load_and_clean}
+load( file.path("dataRaw",'three_day.RData') )
+
+fileWithPath<- file.path("..","two_day.csv")
+if (file.exists( fileWithPath )) {
+  two_day <- read.table(fileWithPath, header=TRUE, sep=",")
+} else {
+  print("two_day.csv not found")
+}
+
+fileWithPath<- file.path("..","one_day.csv")
+if (file.exists( fileWithPath )) {
+  one_day <- read.table(fileWithPath, header=TRUE, sep=",")
+} else {
+  print("one_day.csv not found")
+}
+
+three_day$Condition <- "three_day"
+two_day$Condition <- "two_day"
+one_day$Condition <- "one_day"
+
+#Rename the variables that have slightly different names in the three conditions, because that prevents merging
+names(two_day)[names(two_day) == 'Response.letter'] <- 'Response.Letter'
+#setdiff( colnames(three_day), colnames(two_day) )
+setequal( colnames(three_day), colnames(two_day) )
+
+names(one_day)[names(one_day) == 'responsepos'] <- 'Response.Pos'
+names(one_day)[names(one_day) == 'responseletter'] <- 'Response.Letter'
+names(one_day)[names(one_day) == 'distance'] <- 'Distance'
+
+all<- rbind(three_day,two_day,one_day)
+
+library(dplyr)
+
+allDays<-all
+
+#mixRSVP requires that dataframe that must have fields targetSP and SPE
+names(allDays)[names(allDays) == 'TargPos'] <- 'targetSP'
+names(allDays)[names(allDays) == 'Distance'] <- 'SPE'
+
+#Exclude trials where target was not presented
+allDays <- allDays %>% filter(targetSP != 0)
+#Exclude other cases where SPE not applicable
+#Response.Pos == False indicates either		a) the participant reported "0"
+# b) there was no target on that trial
+# c) the participant reported a stimulus that was not presented
+allDays <- allDays %>% filter(Response.Pos != FALSE)
+```
