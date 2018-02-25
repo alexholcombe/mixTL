@@ -1,7 +1,7 @@
 ---
 title: "analyzeAll"
 author: "Alex Holcombe"
-date: "2/21/2018"
+date: "2/26/2018"
 output: html_document
 ---
 
@@ -9,47 +9,25 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Load data and wrangle into one dataframe.
-```{r load_and_clean}
-load( file.path("dataRaw",'three_day.RData') )
+## R Markdown
 
-fileWithPath<- file.path("..","two_day.csv")
+Exclude trials where target was not presented.
+
+Exclude other cases where SPE not applicable, namely Response.pos == FALSE
+
+* Response.Pos == False indicates either		
+  + the participant reported "0"
+  + there was no target on that trial
+  + the participant reported a stimulus that was not presented
+
+```{r load_and_preprocess, echo=FALSE}
+
+fileWithPath<- file.path("dataRaw",'allDaysData.RData') 
 if (file.exists( fileWithPath )) {
-  two_day <- read.table(fileWithPath, header=TRUE, sep=",")
-} else {
-  print("two_day.csv not found")
+  load ( fileWithPath, verbose=TRUE  ) #loads allDays
 }
-
-fileWithPath<- file.path("..","one_day.csv")
-if (file.exists( fileWithPath )) {
-  one_day <- read.table(fileWithPath, header=TRUE, sep=",")
-} else {
-  print("one_day.csv not found")
-}
-
-three_day$Condition <- "three_day"
-two_day$Condition <- "two_day"
-one_day$Condition <- "one_day"
-
-#Rename the variables that have slightly different names in the three conditions, because that prevents merging
-names(two_day)[names(two_day) == 'Response.letter'] <- 'Response.Letter'
-#setdiff( colnames(three_day), colnames(two_day) )
-setequal( colnames(three_day), colnames(two_day) )
-
-names(one_day)[names(one_day) == 'responsepos'] <- 'Response.Pos'
-names(one_day)[names(one_day) == 'responseletter'] <- 'Response.Letter'
-names(one_day)[names(one_day) == 'distance'] <- 'Distance'
-
-all<- rbind(three_day,two_day,one_day)
 
 library(dplyr)
-
-allDays<-all
-
-#mixRSVP requires that dataframe that must have fields targetSP and SPE
-names(allDays)[names(allDays) == 'TargPos'] <- 'targetSP'
-names(allDays)[names(allDays) == 'Distance'] <- 'SPE'
-
 #Exclude trials where target was not presented
 allDays <- allDays %>% filter(targetSP != 0)
 #Exclude other cases where SPE not applicable
@@ -58,3 +36,49 @@ allDays <- allDays %>% filter(targetSP != 0)
 # c) the participant reported a stimulus that was not presented
 allDays <- allDays %>% filter(Response.Pos != FALSE)
 ```
+
+
+Install the mixture modeling R library
+```{r install}
+#devtools::install_github('alexholcombe/mixRSVP',build_vignettes=TRUE)  #If want latest version
+library(mixRSVP)
+
+```
+
+Set up the experiment-specific parameters 
+
+```{r detailsNeededForMixtureModeling}
+
+annotateIt<-TRUE
+minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
+maxSPE<- 13 #targetSP = 3 and response position is 16```
+```
+
+Ultimately want to analyze data broken down by:
+* Group (determines in which serial positions the targets appeared)
+* Condition (3-day, 2-day, 1-day)
+* targetSP  (formerly known as TargPos (target position this trial))
+* Block (epochs of trials basically)
+* Subject
+
+```{r detailsNeededForMixtureModeling}
+
+condtnVariableNames <- c("Group","Condition","targetSP", "Block","Subject")  
+```
+
+
+```{r analyze, echo=FALSE}
+
+df<- allDays %>% filter(Group==1,Blocks==7,Condition=="one_day")
+
+  
+estimates<- df %>%  
+    group_by_(.dots = condtnVariableNames) %>%  #.dots needed when you have a variable containing multiple factor names
+    do(  analyzeOneConditionDF(.,numItemsInStream,parameterBounds(), nReplicates=3)  )
+
+head(estimates)
+
+```
+
+
+

@@ -13,9 +13,9 @@ There are both "training" blocks, "practice" blocks (1,8,15, which I think were 
 
 Ultimately want to analyze data broken down by:
 * Group (determines in which serial positions the targets appeared)
-* Block (epochs of trials basically)
-* TargPos (target position this trial)
 * Condition (3-day, 2-day, 1-day)
+* TargPos (target position this trial)
+* Block (epochs of trials basically)
 
 Analyzing that many would probably take all night. 
 
