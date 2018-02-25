@@ -49,6 +49,7 @@ Set up the experiment-specific parameters
 
 ```{r detailsNeededForMixtureModeling}
 
+numItemsInStream<- 16 #from their Methods section  
 annotateIt<-TRUE
 minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
 maxSPE<- 13 #targetSP = 3 and response position is 16```
@@ -69,8 +70,11 @@ condtnVariableNames <- c("Group","Condition","targetSP", "Block","Subject")
 
 ```{r analyze, echo=FALSE}
 
-df<- allDays %>% filter(Group==1,Blocks==7,Condition=="one_day")
-
+debugging<- TRUE
+if (debugging) {
+  #take a subset of the data just during debugging because analysis takes all night maybe
+  df<- allDays %>% filter(Group==1,Block==7,Condition=="one_day", Subject<17)
+}
   
 estimates<- df %>%  
     group_by_(.dots = condtnVariableNames) %>%  #.dots needed when you have a variable containing multiple factor names
@@ -80,5 +84,13 @@ head(estimates)
 
 ```
 
+```{r saveParameterEstimates, echo=FALSE}
 
+destination<- file.path("results","estimates.csv")
 
+#Convert tibble to dataframe
+estimatesDf <- data.frame(estimates)
+write_csv(estimatesDf, destination)
+
+print(estimates)
+```
