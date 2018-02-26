@@ -1,0 +1,44 @@
+---
+title: "investigate wierd ones"
+author: "Alex Holcombe"
+date: "2/8/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load some data. Group 3 means all serial positions were used.
+
+```{r load_and_clean}
+estimates<-read.csv( file.path("results",'estimates.csv') )
+library(dplyr)
+
+```
+
+Install the mixture modeling R library
+```{r install}
+#devtools::install_github('alexholcombe/mixRSVP',build_vignettes=TRUE)  #If want latest version
+library(mixRSVP)
+
+```
+
+Set up the experiment-specific parameters 
+
+```{r detailsNeededForMixtureModeling}
+
+annotateIt<-TRUE
+minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
+maxSPE<- 13 #targetSP = 3 and response position is 16```
+```
+
+Inspect strange case of subject #915. Turns out it's actually fine, it's just that they didn't report seeing a letter very often, so it doesn't show up on the graph with common scale at bottom.
+
+```{r plot915, echo=FALSE, message=FALSE, fig.cap = "Fitted guessing distribution in yellow, discretized Gaussian in light blue, combined in green, dark blue is continuous Gaussian"}
+
+d915<- dplyr::filter(data,Subject==915)  
+plotContinuousGaussian<-TRUE; annotateIt<-TRUE
+g<- plot_hist_with_fit(d915,minSPE,maxSPE,d915$targetSP,numItemsInStream,plotContinuousGaussian,annotateIt, FALSE)
+g + annotate("text", x = 12, y = 25, label = "915")
+```

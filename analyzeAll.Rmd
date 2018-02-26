@@ -87,6 +87,8 @@ Parameter estimates done.
 
 ```{r saveParameterEstimates, echo=FALSE}
 
+estimates<- estimates %>% mutate(mixModelFitsBetter = (pLRtest<.05))
+  
 destination<- file.path("results","estimates.csv")
 
 #Convert tibble to dataframe so can be written to csv
