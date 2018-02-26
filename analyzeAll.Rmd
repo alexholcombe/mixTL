@@ -62,7 +62,7 @@ Ultimately want to analyze data broken down by:
 * Block (epochs of trials basically)
 * Subject
 
-```{r detailsNeededForMixtureModeling}
+```{r factors to break down data by}
 
 condtnVariableNames <- c("Group","Condition","targetSP", "Block","Subject")  
 ```
@@ -84,13 +84,14 @@ head(estimates)
 
 ```
 
+Save estimates to file.
+
 ```{r saveParameterEstimates, echo=FALSE}
 
 destination<- file.path("results","estimates.csv")
 
-#Convert tibble to dataframe
+#Convert tibble to dataframe so can be written to csv
 estimatesDf <- data.frame(estimates)
-write_csv(estimatesDf, destination)
+write.csv(estimatesDf, destination)
 
-print(estimates)
 ```
