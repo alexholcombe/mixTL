@@ -60,10 +60,12 @@ Inspect strange case of subject #915. Turns out it's actually fine, it's just th
 
 ```{r plot915, echo=FALSE, message=FALSE, fig.cap = "Fitted guessing distribution in yellow, discretized Gaussian in light blue, combined in green, dark blue is continuous Gaussian"}
 
-d915<- dplyr::filter(data,Subject==915)  
+d915<- dplyr::filter(df,Subject==915)  
 plotContinuousGaussian<-TRUE; annotateIt<-TRUE
+
 g<- plot_hist_with_fit(d915,minSPE,maxSPE,d915$targetSP,numItemsInStream,plotContinuousGaussian,annotateIt, FALSE)
-g + annotate("text", x = 12, y = 25, label = "915")
+g<-g + ggplot2::annotate("text", x = 10, y = 20, label = "915")
+show(g)
 ```
 
 Inspect strange case of subject #99. Turns out it's actually fine, it's just that they didn't report seeing a letter very often, so it doesn't show up on the graph with common scale at bottom.
@@ -72,7 +74,7 @@ Inspect strange case of subject #99. Turns out it's actually fine, it's just tha
 
 d99<- dplyr::filter(data,Subject==99)  
 g<- plot_hist_with_fit(d915,minSPE,maxSPE,d915$targetSP,numItemsInStream,plotContinuousGaussian,annotateIt, FALSE)
-g + annotate("text", x = 12, y = 25, label = "99")
+g + ggplot2::annotate("text", x = 12, y = 25, label = "99")
 ```
 
 

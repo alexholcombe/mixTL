@@ -1,0 +1,1 @@
+devtools::install_github('alexholcombe/mixRSVP',build_vignettes=TRUE)
