@@ -59,7 +59,7 @@ Ultimately want to analyze data broken down by:
 * Group (determines in which serial positions the targets appeared)
 * Condition (3-day, 2-day, 1-day)
 * targetSP  (formerly known as TargPos (target position this trial))
-* Block (epochs of trials basically)
+* Epoch (groups of 3 blocks)
 * Subject
 
 ```{r factors to break down data by}

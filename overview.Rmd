@@ -9,13 +9,21 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+What Jackie and Matthew found with Vul's formula:
+
+> We found that A values increase and V values decrease with practice. The problem was that neither the A, C, and V values evidenced learning of the consistent timing during the training phase. That is, the patterns did not differ between the conditions with fixed target positions and the condition with random target positions. We did find evidence for temporal learning at transfer for the early (position 4) and late (position 13) positions. We would be interested in seeing if your estimates would show clearer evidence of temporal learning at training and at transfer.
+
+## Grouping the data
+
 There are both "training" blocks, "practice" blocks (1,8,15, which I think were the first block of each day?), and "transfer" blocks (vary with day condition).
 
 Ultimately want to analyze data broken down by:
 * Group (determines in which serial positions the targets appeared)
 * Condition (3-day, 2-day, 1-day)
 * TargPos (target position this trial)
-* Block (epochs of trials basically)
+* Epochs (group of 3 Blocks). 
+
+Jackie says: The epoch would be more stable than block. We arbitrarily chose to aggregate over 3 blocks, mostly because it was a common denominator of the total number of training blocks among the different levels of training. Each block contained 24 trials of a given target position in the conditions where target positions were fixed and 4 trials in the random condition—not enough in either case to get A, C, V estimates.
 
 Analyzing that many would probably take all night. 
 

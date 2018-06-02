@@ -1,0 +1,218 @@
+---
+title: "inspect histograms"
+author: "Alex Holcombe"
+date: "2/26/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Exclude trials where target was not presented.
+
+Exclude other cases where SPE not applicable, namely Response.pos == FALSE
+
+* Response.Pos == False indicates either		
+  + the participant reported "0"
+  + there was no target on that trial
+  + the participant reported a stimulus that was not presented
+
+```{r load_and_preprocess, echo=FALSE}
+
+fileWithPath<- file.path("dataRaw",'allDaysData.RData') 
+if (file.exists( fileWithPath )) {
+  load ( fileWithPath, verbose=TRUE  ) #loads allDays
+}
+
+library(dplyr)
+#Exclude trials where target was not presented
+allDays <- allDays %>% filter(targetSP != 0)
+#Exclude other cases where SPE not applicable
+#Response.Pos == False indicates either		a) the participant reported "0"
+# b) there was no target on that trial
+# c) the participant reported a stimulus that was not presented
+allDays <- allDays %>% filter(Response.Pos != FALSE)
+```
+
+
+Install the mixture modeling R library
+```{r install}
+#devtools::install_github('alexholcombe/mixRSVP',build_vignettes=TRUE)  #If want latest version
+library(mixRSVP)
+
+```
+
+Set up the experiment-specific parameters 
+
+```{r detailsNeededForMixtureModeling}
+
+numItemsInStream<- 16 #from their Methods section  
+annotateIt<-TRUE
+minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
+maxSPE<- 13 #targetSP = 3 and response position is 16```
+```
+
+Ultimately want to analyze data broken down by:
+* Group (determines in which serial positions the targets appeared)
+* Condition (3-day, 2-day, 1-day)
+* targetSP  (formerly known as TargPos (target position this trial))
+* Block (epochs of trials basically)
+* Subject
+
+```{r factors to break down data by}
+
+condtnVariableNames <- c("Group","Condition","targetSP", "Block","Subject")  
+```
+
+```{r plot one graph}
+
+dg <- allDays %>% filter(Group==1, Condition=="one_day", Block==2, Subject==12)
+
+plotContinuousGaussian<-TRUE
+g<- plot_hist_with_fit(dg,minSPE,maxSPE,df$targetSP,numItemsInStream,plotContinuousGaussian,annotateIt, FALSE)
+library(ggplot2)
+g<-g + annotate("text", x = 12, y = 25, label = "Group 1, one_day, Block 2, Subject 12")
+show(g)
+
+```
+
+Define function to plot bunch of subjects.
+
+Facets by "Subject+targetSP~Block", meaning that should break the data down by Group and Condition separately.
+
+
+```{r, echo=TRUE, message=TRUE}
+
+library(ggplot2)
+
+plotBunch<- function(df,curves) {
+  #Columns are epochs
+  #Label rows by Subject+targetSP combinations. Outermost label is Subject, inner is targetSP
+  g=ggplot(df, aes(x=SPE)) + facet_grid(Subject+targetSP~Epoch) #,  scales="free_y")
+  g<-g+geom_histogram(binwidth=1,color="grey90") + xlim(minSPE,maxSPE)
+  g<-g+ geom_text(x=12, y= 33, aes(label = Subject)) #inset subject name/number. Unfortunately it overwrites itself a million times
+  g<-g +theme_apa() #+theme(panel.grid.minor=element_blank(),panel.grid.major=element_blank())# hide all gridlines.
+  #g<-g+ theme(line=element_blank(), panel.border = element_blank())
+  sz=.8
+  #Plot the underlying Gaussian , not just the discretized Gaussian. But it's way too tall. I don't know if this is 
+  #a scaling problem or what actually is going on.
+  #g<-g + geom_line(data=gaussFine,aes(x=x,y=gaussianFreq),color="darkblue",size=1.2)
+  
+  if (!is.null(curves)) {
+    g<-g+ geom_point(data=curves,aes(x=x,y=combinedFitFreq),color="chartreuse3",size=sz*2.5)
+    g<-g+ geom_line(data=curves,aes(x=x,y=guessingFreq),color="yellow",size=sz)
+    #Discretized Gaussian
+    g<-g+ geom_line(data=curves,aes(x=x,y=gaussianFreq),color="lightblue",size=sz)
+    
+    #mixSig - whether mixture model statistically significantly better than guessing
+    curves <- dplyr::mutate(curves, mixSig = ifelse(pLRtest <= .05, TRUE, FALSE)) #annotate_fit uses this to color the p-value
+    g<- annotate_fit(g,curves) #assumes curvesDf includes efficacy,latency,precision
+    #Somehow the which mixSig (TRUE or FALSE) is red and which green is flipped relative to plot_hist_with_fit even though
+    #identical commands are used. I haven't been able to work out why.
+    #g<- g + scale_color_manual(values=c("red","forestgreen")) #already done in annotate_fit
+  }
+  return (g)   
+}  
+```
+
+Epoch (groups of 3 blocks) is the smallest group of trials that Shin & Junker want a graph for.
+
+So, create epochs out of group triplets, specifically
+ blocks 2-4, 5-7, [skip 8 because practice], 9-11, 12-14, [skip 15 because practice], 16-18, and 19-21
+
+
+```{r create Epoch variable}
+
+lookupEpoch= data.frame( 
+  Epoch=c("practice1", "1","1","1","2","2","2","practice2","3","3","3","4","4","4", "practice3",  "5","5","5","6","6","6"),
+  Block=c(1,           2,3,4,         5,6,7,    8,          9,10,11,   12,13,14,     15,     16,17,18, 19,20,21))
+
+allDays <- plyr::join(allDays,lookupEpoch,by='Block') #https://stackoverflow.com/questions/10158617/how-do-i-replace-numeric-codes-in-a-data-frame-with-value-labels-from-a-data-fr?noredirect=1&lq=1
+
+allDays$practice <- FALSE
+allDays<-allDays %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice2" | Epoch=="practice3", TRUE, FALSE)) #https://stackoverflow.com/questions/24459752/can-dplyr-package-be-used-for-conditional-mutating#24459900
+```
+
+plotBunch works: show graphs without curves.
+
+```{r test plotBunch}
+
+dg <- allDays %>% filter(Group==1, Condition=="one_day", Subject==12, practice==FALSE)
+
+plotBunch(dg,NULL) #without curves
+
+```
+
+But when I try to add the curves, it seems like something redundant is happening
+with multiple curves laid on top of each other.
+
+```{r}
+
+curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
+  do(calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream))
+
+```
+
+Example: take a particular Group,Condition combination.
+
+This would be the first time I've analysed data separately for different targetSP. Is that the reason for `minSPE must be no greater than -3 based on the values you passed me` ?
+
+Let's try a sample with all targetSPs, see if that avoids the error.
+
+```{r}
+dg <- allDays %>% filter(Group==1, Condition=="one_day", Epoch==2, Subject==12)
+
+curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
+  do(calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream))
+
+plotBunch(dg,curves)
+
+
+```
+
+```{r}
+
+dg <- allDays %>% filter(Group==1, Condition=="one_day")
+dg <- allDays %>% filter(Group==1, Condition=="one_day", Block==2)
+
+curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
+  do(calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream))
+
+#Error in bind_rows_(x, .id) :  Column `warnings` can't be converted from character to list
+```  
+ 
+  
+```{r, fig.height=100, fig.width=10}
+
+#plotBunch will break down the data by Epoch, Subject, TargetSP
+#So in calling it, we need to loop over only Group and Condition, plus
+#divide the subjects into manageable groups
+
+#A good number of rows for fig of height 100 in html is 32.
+#Each subject gets 2 rows. Therefore find the 16-subject intervals
+subjectsPerGraph<-16
+#length(unique(df$subject[ df$subject < "AQ" ]))
+numSs<- length( unique(dg$subject) )
+subjectBreaks<- seq(1,numSs,subjectsPerGraph)
+
+subjCutoffs<- unique(dg$subject)[subjectBreaks]
+#add last subject to cutoff list
+subjCutoffs<- c( subjCutoffs, tail(unique(dg$subject),1) )
+for (i in 1:(length(subjCutoffs)-1)) {
+  subjMin <- subjCutoffs[i]
+  subjMax<- subjCutoffs[i+1]
+  dh<- dg %>% filter(subject >= subjMin, subject <= subjMax)
+  curvesThis <- curves %>% filter(subject >= subjMin, subject <= subjMax)
+  
+  h<-plotBunch(dh,curvesThis)
+  print(paste0("Showing another set of Ss,",subjMin," to ",subjMax)
+  show(h)
+}
+
+  
+```
+
+
