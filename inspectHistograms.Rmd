@@ -62,10 +62,6 @@ Ultimately want to analyze data broken down by:
 * Block (epochs of trials basically)
 * Subject
 
-```{r factors to break down data by}
-
-condtnVariableNames <- c("Group","Condition","targetSP", "Block","Subject")  
-```
 
 ```{r plot one graph}
 
@@ -102,8 +98,8 @@ plotBunch<- function(df,curves) {
   #g<-g + geom_line(data=gaussFine,aes(x=x,y=gaussianFreq),color="darkblue",size=1.2)
   
   if (!is.null(curves)) {
-    g<-g+ geom_point(data=curves,aes(x=x,y=combinedFitFreq),color="chartreuse3",size=sz*2.5)
-    g<-g+ geom_line(data=curves,aes(x=x,y=guessingFreq),color="yellow",size=sz)
+    #g<-g+ geom_point(data=curves,aes(x=x,y=combinedFitFreq),color="chartreuse3",size=sz*2.5)
+    #g<-g+ geom_line(data=curves,aes(x=x,y=guessingFreq),color="yellow",size=sz)
     #Discretized Gaussian
     g<-g+ geom_line(data=curves,aes(x=x,y=gaussianFreq),color="lightblue",size=sz)
     
@@ -140,19 +136,38 @@ plotBunch works: show graphs without curves.
 
 ```{r test plotBunch}
 
-dg <- allDays %>% filter(Group==1, Condition=="one_day", Subject==12, practice==FALSE)
+dg <- allDays %>% filter(Group==1, targetSP<=7, Condition=="one_day", Subject==12, practice==FALSE)
 
 plotBunch(dg,NULL) #without curves
 
 ```
 
+```{r factors to break down data by}
+
+condtnVariableNames <- c("Group","Condition","targetSP", "Block","Subject","Epoch")  
+```
+
 But when I try to add the curves, it seems like something redundant is happening
-with multiple curves laid on top of each other.
+with multiple curves laid on top of each other. In fact the gaussian freq does not look like a guassian and the annotation is written at least twice.
 
 ```{r}
 
 curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
   do(calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream))
+
+```
+
+```{r}
+g<-plotBunch(dg,curves)
+g
+```
+
+Simulate plotBunch to find out what has gone wrong.
+
+```{r}
+dOne<- dg %>% filter(targetSP==4, Epoch==1)
+cOne<- curves %>% filter(targetSP==4, Epoch==1)
+plotBunch(dOne,cOne)
 
 ```
 
