@@ -128,6 +128,7 @@ lookupEpoch= data.frame(
 
 allDays <- plyr::join(allDays,lookupEpoch,by='Block') #https://stackoverflow.com/questions/10158617/how-do-i-replace-numeric-codes-in-a-data-frame-with-value-labels-from-a-data-fr?noredirect=1&lq=1
 
+#Add practice TRUE/FALSE column
 allDays$practice <- FALSE
 allDays<-allDays %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice2" | Epoch=="practice3", TRUE, FALSE)) #https://stackoverflow.com/questions/24459752/can-dplyr-package-be-used-for-conditional-mutating#24459900
 ```
@@ -144,11 +145,10 @@ plotBunch(dg,NULL) #without curves
 
 ```{r factors to break down data by}
 
-condtnVariableNames <- c("Group","Condition","targetSP", "Block","Subject","Epoch")  
+condtnVariableNames <- c("Group","Condition","targetSP","Subject","Epoch")  
 ```
 
-But when I try to add the curves, it seems like something redundant is happening
-with multiple curves laid on top of each other. In fact the gaussian freq does not look like a guassian and the annotation is written at least twice.
+Fit the data, add the curves to the graph.
 
 ```{r}
 
@@ -162,7 +162,6 @@ g<-plotBunch(dg,curves)
 g
 ```
 
-Simulate plotBunch to find out what has gone wrong.
 
 ```{r}
 dOne<- dg %>% filter(targetSP==4, Epoch==1)
@@ -170,6 +169,43 @@ cOne<- curves %>% filter(targetSP==4, Epoch==1)
 plotBunch(dOne,cOne)
 
 ```
+
+Simulate plotBunch to find out what has gone wrong.
+
+```{r}
+  df<-dOne
+  
+  #Label rows by Subject+targetSP combinations. Outermost label is Subject, inner is targetSP
+  g=ggplot(df, aes(x=SPE)) + facet_grid(Subject+targetSP~Epoch) #,  scales="free_y")
+  g<-g+geom_histogram(binwidth=1,color="grey90") + xlim(minSPE,maxSPE)
+  g<-g+ geom_text(x=12, y= 33, aes(label = Subject)) #inset subject name/number. Unfortunately it overwrites itself a million times
+  g<-g +theme_apa() #+theme(panel.grid.minor=element_blank(),panel.grid.major=element_blank())# hide all gridlines.
+  #g<-g+ theme(line=element_blank(), panel.border = element_blank())
+  sz=.8
+  g
+  #curves <- dplyr::mutate(curves, mixSig = ifelse(pLRtest <= .05, TRUE, FALSE)) #annotate_fit uses this to color the p-value
+  cOne<-cOne %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice2" | Epoch=="practice3", TRUE, FALSE))
+  cOne <- cOne %>% filter(practice==FALSE)
+  
+  table(cOne$Group,cOne$Condition,cOne$targetSP,cOne$Block,cOne$Subject,cOne$Epoch,cOne$efficacy)
+  #Combine columns into one column so can see more easily
+  table(cOne$Epoch,cOne$efficacy)
+  #I want to know which column differs for the different efficacies
+  I'M DOING EPOCHS, BUT THE CURVE WAS FIT PER BLOCK
+
+  listOfCols <- as.list( cOne[condtnVariableNames] )
+  t<- table(listOfCols)
+  if (TRUE) {  
+    t<- t[t!=0]   
+  }           
+  colNamesStr <- paste(colNames,collapse=",")
+  
+  checkAllGroupsOccurEquallyOften(cOne, condtnVariableNames, FALSE, FALSE)
+
+  g<- annotate_fit(g,cOne) #assumes curvesDf includes efficacy,latency,precision
+  show(g)
+```
+
 
 Example: take a particular Group,Condition combination.
 
