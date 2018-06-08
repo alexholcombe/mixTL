@@ -1,0 +1,54 @@
+---
+title: "inspect histograms"
+author: "Alex Holcombe"
+date: "2/26/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load data, specifically curves and dg
+```{r}
+
+load('results/inspectHists.Rdata')
+```
+
+```{r, fig.height=100, fig.width=10}
+
+#plotBunch will break down the data by Epoch, Subject, TargetSP
+#So in calling it, we need to loop over only Group and Condition, plus
+#divide the subjects into manageable groups
+
+#A good number of rows for fig of height 100 in html is 32.
+#Each subject gets 2 rows. Therefore find the 16-subject intervals
+subjectsPerGraph<-16
+#length(unique(df$subject[ df$subject < "AQ" ]))
+numSs<- length( unique(dg$Subject) )
+subjectBreaks<- seq(1,numSs,subjectsPerGraph)
+
+subjCutoffs<- unique(dg$Subject)[subjectBreaks]
+#add last subject to cutoff list
+subjCutoffs<- c( subjCutoffs, tail(unique(dg$Subject),1) )
+#for (i in 1:(length(subjCutoffs)-1)) {
+for (i in 1:1) {
+
+  subjMin <- subjCutoffs[i]
+  subjMax<- subjCutoffs[i+1]
+  dh<- dg %>% filter(Subject >= subjMin, Subject <= subjMax)
+  curvesThis <- curves %>% filter(Subject >= subjMin, Subject <= subjMax)
+  
+  h<-plotBunch(dh,curvesThis)
+  print(paste0("Showing another set of Ss,",subjMin," to ",subjMax))
+  plotTitle<- paste0('Ss ',subjMin,'->',subjMax)
+  plotTitle<- paste0(plotTitle,'.png')
+  plotPath<- 'plots'
+  show(h)
+  #ggsave(file.path(plotPath,plotTitle),bg="transparent",limitsize=FALSE ) #bg option will be passed to png
+}
+
+  
+```
+
+
