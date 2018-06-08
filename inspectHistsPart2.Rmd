@@ -31,8 +31,8 @@ curves<-curves %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice
 #divide the subjects into manageable groups
 
 #A good number of rows for fig of height 100 in html is 32.
-#Each subject gets up to 4 rows. Therefore find the 8-subject intervals
-subjectsPerGraph<-4
+#Each subject gets up to 12 rows, depending on how many target positions they did. Therefore find the 8-subject intervals
+subjectsPerGraph<-2
 #length(unique(df$subject[ df$subject < "AQ" ]))
 numSs<- length( unique(dg$Subject) )
 subjectBreaks<- seq(1,numSs,subjectsPerGraph)
@@ -41,35 +41,18 @@ subjCutoffs<- unique(dg$Subject)[subjectBreaks]
 #add last subject to cutoff list
 subjCutoffs<- c( subjCutoffs, tail(unique(dg$Subject),1) )
 for (i in 1:(length(subjCutoffs)-1)) {
-#for (i in 1:1) {
   subjMin <- subjCutoffs[i]
   subjMax<- subjCutoffs[i+1]
   dh<- dg %>% filter(practice==FALSE) #Otherwise graph has too many columns to see the data
   dh<- dh %>% filter(Subject >= subjMin, Subject <= subjMax)
   curvesThis <- curves %>% filter(Subject >= subjMin, Subject <= subjMax, practice==FALSE)
   print(paste0("Trying to plot another set of Ss,",subjMin," to ",subjMax))
-  #plotTitle<- paste0('Ss ',subjMin,'->',subjMax)
-  #plotTitle<- paste0(plotTitle,'.png')
-  #plotPath<- 'plots'
-  out <- tryCatch(
-    {
-      h<-plotBunch(dh,curvesThis,minSPE,maxSPE)
-      show(h)
-     },
-    error=function(cond) {
-            message("Here's an error message:")
-            message(cond)
-            # Choose a return value in case of error
-            return(NA)
-      },
-    warning=function(cond) {
-            message("Here's a warning message:")
-            message(cond)
-            # Choose a return value in case of warning
-            return(NULL)
-     }
-   )
-  #ggsave(file.path(plotPath,plotTitle),bg="transparent",limitsize=FALSE ) #bg option will be passed to png
+  h<-plotBunch(dh,curvesThis,minSPE,maxSPE)
+  show(h)
+  plotTitle<- paste0('Ss ',subjMin,'->',subjMax)
+  plotTitle<- paste0(plotTitle,'.png')
+  plotPath<- 'plots'
+  ggsave(file.path(plotPath,plotTitle),bg="transparent",width=10,height=30,limitsize=FALSE ) #bg option will be passed to png
 }
   
 ```
