@@ -13,6 +13,15 @@ Load data, specifically curves and dg
 ```{r}
 
 load('results/inspectHists.Rdata')
+library(mixRSVP) #for themeAPA
+library(dplyr)
+library(ggplot2)
+minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
+maxSPE<- 13 #targetSP = 3 and response position is 16```
+source('plotBunch.R')
+
+curves$practice <- FALSE
+curves<-curves %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice2" | Epoch=="practice3", TRUE, FALSE))
 ```
 
 ```{r, fig.height=100, fig.width=10}
@@ -22,8 +31,8 @@ load('results/inspectHists.Rdata')
 #divide the subjects into manageable groups
 
 #A good number of rows for fig of height 100 in html is 32.
-#Each subject gets 2 rows. Therefore find the 16-subject intervals
-subjectsPerGraph<-16
+#Each subject gets up to 4 rows. Therefore find the 8-subject intervals
+subjectsPerGraph<-4
 #length(unique(df$subject[ df$subject < "AQ" ]))
 numSs<- length( unique(dg$Subject) )
 subjectBreaks<- seq(1,numSs,subjectsPerGraph)
@@ -31,23 +40,37 @@ subjectBreaks<- seq(1,numSs,subjectsPerGraph)
 subjCutoffs<- unique(dg$Subject)[subjectBreaks]
 #add last subject to cutoff list
 subjCutoffs<- c( subjCutoffs, tail(unique(dg$Subject),1) )
-#for (i in 1:(length(subjCutoffs)-1)) {
-for (i in 1:1) {
-
+for (i in 1:(length(subjCutoffs)-1)) {
+#for (i in 1:1) {
   subjMin <- subjCutoffs[i]
   subjMax<- subjCutoffs[i+1]
-  dh<- dg %>% filter(Subject >= subjMin, Subject <= subjMax)
-  curvesThis <- curves %>% filter(Subject >= subjMin, Subject <= subjMax)
-  
-  h<-plotBunch(dh,curvesThis)
-  print(paste0("Showing another set of Ss,",subjMin," to ",subjMax))
-  plotTitle<- paste0('Ss ',subjMin,'->',subjMax)
-  plotTitle<- paste0(plotTitle,'.png')
-  plotPath<- 'plots'
-  show(h)
+  dh<- dg %>% filter(practice==FALSE) #Otherwise graph has too many columns to see the data
+  dh<- dh %>% filter(Subject >= subjMin, Subject <= subjMax)
+  curvesThis <- curves %>% filter(Subject >= subjMin, Subject <= subjMax, practice==FALSE)
+  print(paste0("Trying to plot another set of Ss,",subjMin," to ",subjMax))
+  #plotTitle<- paste0('Ss ',subjMin,'->',subjMax)
+  #plotTitle<- paste0(plotTitle,'.png')
+  #plotPath<- 'plots'
+  out <- tryCatch(
+    {
+      h<-plotBunch(dh,curvesThis,minSPE,maxSPE)
+      show(h)
+     },
+    error=function(cond) {
+            message("Here's an error message:")
+            message(cond)
+            # Choose a return value in case of error
+            return(NA)
+      },
+    warning=function(cond) {
+            message("Here's a warning message:")
+            message(cond)
+            # Choose a return value in case of warning
+            return(NULL)
+     }
+   )
   #ggsave(file.path(plotPath,plotTitle),bg="transparent",limitsize=FALSE ) #bg option will be passed to png
 }
-
   
 ```
 
