@@ -1,3 +1,4 @@
+#SHOULD ADD LABELING OF CONDITION, DON'T NEED SUBJECT NUMBER IN ANNOTATON
 plotBunch<- function(df,curves,minSPE,maxSPE) {
   #Columns are epochs
   #Label rows by Subject+targetSP combinations. Outermost label is Subject, inner is targetSP
