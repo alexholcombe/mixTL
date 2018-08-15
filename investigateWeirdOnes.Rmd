@@ -79,8 +79,13 @@ g + annotate("text", x = 12, y = 25, label = "915")
 Also use plotBunch from plotBunch.r, which uses  facet_grid(Subject+targetSP~Epoch)
 
 ```{r}
-dh <- allDays %>% dplyr::filter(Subject==915)
+lookupEpoch= data.frame( 
+  Epoch=c("practice1", "1","1","1","1","1","1","practice2","2","2","2","2","2","2", "practice3",  "3","3","3",  "4","4","4"),
+  Block=c(1,              2,3,4,5,6,7,             8,          9,10,11,12,13,14,        15,     16,17,18,    19,20,21))
+
+data <- plyr::join(data,lookupEpoch,by='Block') #https://stackoverflow.com/questions/10158617/how-do-i-replace-numeric-codes-in-a-data-frame-with-value-labels-from-a-data-fr?noredirect=1&lq=1
+dh <- data %>% dplyr::filter(Subject>=914)
 source('plotBunch.R')
-#h<-plotBunch(dh,NULL,minSPE,maxSPE)
-#h
+h<-plotBunch(dh,NULL,minSPE,maxSPE)
+h
 ```

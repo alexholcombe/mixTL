@@ -9,10 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
 Exclude trials where target was not presented.
-
 Exclude other cases where SPE not applicable, namely Response.pos == FALSE
 
 * Response.Pos == False indicates either		
@@ -33,10 +30,9 @@ library(dplyr)
 #Response.Pos == False indicates either		a) the participant reported "0"
 # b) there was no target on that trial
 # c) the participant reported a stimulus that was not presented
-allDays <- allDays %>% filter(targetSP != 0) %>% filter(Response.Pos != FALSE)
+data <- allDays %>% filter(targetSP != 0) %>% filter(Response.Pos != FALSE)
  
 ```
-
 
 Install the mixture modeling R library
 ```{r install}
@@ -45,14 +41,35 @@ library(mixRSVP)
 
 ```
 
-Set up the experiment-specific parameters 
+Set up the basic experiment-specific parameters.
 
 ```{r detailsNeededForMixtureModeling}
-
 numItemsInStream<- 16 #from their Methods section  
 annotateIt<-TRUE
 minSPE<- -13 #targetSP = 14, subject reports first letter in stream (1)
 maxSPE<- 13 #targetSP = 3 and response position is 16```
+```
+
+In a Skype call we decided to restrict sigma to have a maximum of 3. `parameterBounds()` returns limits that currently go from 10^-5 to 4.  This is currently a function built into mixRSVP rather than limits being programmed properly so that you can pass them to mixRSVP. However, perhaps if I overload (redefine) `parameterBounds()` it will work.  We will see.
+```{r }
+parameterBounds<- function() {
+  muBound <- 4   #will only consider -4 to +4 for mu
+  sigmaBound <- 3 #will only consider 0 to 4 for sigma
+
+  # If fit tries negative sigma values
+  # Useful number for when limits can't be exactly zero but can be anything larger
+  smallNonZeroNumber <- 10^-3
+
+  #efficacy,          latency,    precision
+  lowerBounds <- c(smallNonZeroNumber, -muBound, smallNonZeroNumber)
+  upperBounds <- c(1,                   muBound, sigmaBound)
+
+  bounds<- data.frame(lower= lowerBounds, upper= upperBounds)
+
+  row.names(bounds)<- c("efficacy",'latency','precision')
+
+  return( bounds )
+}
 ```
 
 Ultimately want to analyze data broken down by:
@@ -62,6 +79,33 @@ Ultimately want to analyze data broken down by:
 * Block (epochs of trials basically)
 * Subject
 
+Epoch is the smallest group of trials that Shin & Junker want a graph for.
+First we tried block triplets (grouping every 3 blocks together), specifically
+ blocks 2-4, 5-7, [skip 8 because practice], 9-11, 12-14, [skip 15 because practice], 16-18, and 19-21. But that didn't seem to give enough data for stable fits, so now we're grouping six together. 
+
+Matthew Junker:
+> we have 6 blocks of training on day 1, 6 blocks of training on day 2, and only 3 blocks of training on day 3 - and because we are interested in changes that occur with training, we thought that averaging over Days 1 and 2 made most sense. I agree that there is still valuable information in Day 3, but half of the blocks in that day were transfer blocks in which new target positions were introduced. So, if we were to analyze training for Day 3, then we would have only half of the amount of data.
+
+For what it's worth, I'll also analyse the Day 3 stuff, even though only 3 blocks available for training and the 3 other blocks are transfer.
+
+```{r createEpochvariable}
+
+# lookupEpochOld= data.frame( 
+#   Epoch=c("practice1", "1","1","1","2","2","2","practice2","3","3","3","4","4","4", "practice3",  "5","5","5","6","6","6"),
+#   Block=c(1,           2,3,4,         5,6,7,    8,          9,10,11,   12,13,14,     15,     16,17,18, 19,20,21))
+
+lookupEpoch= data.frame( 
+  Epoch=c("practice1", "1","1","1","1","1","1","practice2","2","2","2","2","2","2", "practice3",  "3","3","3",  "4","4","4"),
+  Block=c(1,              2,3,4,5,6,7,             8,          9,10,11,12,13,14,        15,     16,17,18,    19,20,21))
+
+data <- plyr::join(data,lookupEpoch,by='Block') #https://stackoverflow.com/questions/10158617/how-do-i-replace-numeric-codes-in-a-data-frame-with-value-labels-from-a-data-fr?noredirect=1&lq=1
+
+#Add practice TRUE/FALSE column
+data$practice <- FALSE
+data<-data %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice2" | Epoch=="practice3", TRUE, FALSE)) #https://stackoverflow.com/questions/24459752/can-dplyr-package-be-used-for-conditional-mutating#24459900
+```
+
+
 ```{r}
 condtnVariableNames <- c("Group","Condition","targetSP","Subject","Epoch")  
 ```
@@ -70,30 +114,11 @@ Define function to plot bunch of subjects.
 
 Facets by "Subject+targetSP~Block", meaning that should break the data down by Group and Condition separately.
 
-Epoch (groups of 3 blocks) is the smallest group of trials that Shin & Junker want a graph for.
-
-So, create epochs out of group triplets, specifically
- blocks 2-4, 5-7, [skip 8 because practice], 9-11, 12-14, [skip 15 because practice], 16-18, and 19-21
-
-
-```{r create Epoch variable}
-
-lookupEpoch= data.frame( 
-  Epoch=c("practice1", "1","1","1","2","2","2","practice2","3","3","3","4","4","4", "practice3",  "5","5","5","6","6","6"),
-  Block=c(1,           2,3,4,         5,6,7,    8,          9,10,11,   12,13,14,     15,     16,17,18, 19,20,21))
-
-allDays <- plyr::join(allDays,lookupEpoch,by='Block') #https://stackoverflow.com/questions/10158617/how-do-i-replace-numeric-codes-in-a-data-frame-with-value-labels-from-a-data-fr?noredirect=1&lq=1
-
-#Add practice TRUE/FALSE column
-allDays$practice <- FALSE
-allDays<-allDays %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice2" | Epoch=="practice3", TRUE, FALSE)) #https://stackoverflow.com/questions/24459752/can-dplyr-package-be-used-for-conditional-mutating#24459900
-```
-
 
 Get ready to plot bunches by fitting data, calculating psychometric curves.   will take up pages and pages of NaN warnings, and takes nearly 12 hours. Then save data so part2 can do the graphs.
 
 ```{r get ready to plot bunches, echo=FALSE, message=FALSE}
-dg <- allDays # %>% filter(Condition=="one_day", Block==2)
+dg <- data # %>% filter(Condition=="one_day", Block==2)
 curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
   do(  mixRSVP::calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream)   )
 save(curves,dg,file='results/inspectHists.Rdata')
