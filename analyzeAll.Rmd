@@ -78,7 +78,7 @@ if (debugging) {
   
 estimates<- df %>%  
     group_by_(.dots = condtnVariableNames) %>%  #.dots needed when you have a variable containing multiple factor names
-    do(  analyzeOneConditionDF(.,numItemsInStream,parameterBounds(), nReplicates=3)  )
+    do(  mixRSVP::analyzeOneConditionDF(.,numItemsInStream,parameterBounds(), nReplicates=3)  )
 
 head(estimates)
 

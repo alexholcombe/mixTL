@@ -1,11 +1,13 @@
 #SHOULD ADD LABELING OF CONDITION, DON'T NEED SUBJECT NUMBER IN ANNOTATON
 plotBunch<- function(df,curves,minSPE,maxSPE) {
+  #I don't use plot_hist_with_fit here because need to use facet_grid
   #Columns are epochs
   #Label rows by Subject+targetSP combinations. Outermost label is Subject, inner is targetSP
   g=ggplot(df, aes(x=SPE)) + facet_grid(Subject+targetSP~Epoch) #,  scales="free_y")
   g<-g+geom_histogram(binwidth=1,color="grey90") + xlim(minSPE,maxSPE)
   g<-g+ geom_text(x=12, y= 33, aes(label = Subject)) #inset subject name/number. Unfortunately it overwrites itself a million times
   g<-g +theme_apa() #+theme(panel.grid.minor=element_blank(),panel.grid.major=element_blank())# hide all gridlines.
+  g <- g + geom_vline(xintercept=0)
   #g<-g+ theme(line=element_blank(), panel.border = element_blank())
   sz=.6
   #Plot the underlying Gaussian , not just the discretized Gaussian. But it's way too tall. I don't know if this is 

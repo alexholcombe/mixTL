@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Load data, specifically curves and dg
 ```{r}
 
-load('results/inspectHists.Rdata')
+load('results/inspectHists.Rdata')  #Contains the psychometric curves and was created by inspectHistsPart1.Rmd
 library(mixRSVP) #for themeAPA
 library(dplyr)
 library(ggplot2)

@@ -15,6 +15,15 @@ What Jackie and Matthew found with Vul's formula:
 
 ## Grouping the data
 
+* Add vertical line where SPE=0.   'plotBunch' is what plots histograms, which calls geom_histogram
+
+* be best to average the blocks for the first day, then average the blocks for the second day.  We would not be analyzing data for the third day.  This way, we are not crossing days when combining data. They clarified the grouping is Epochs 1-2 and 3-4 for the 3-Day condition.
+Blocks 2-7 day one 
+9-14 day two
+
+* Restrict the modeling standard deviation to less than 3?  Check sigmas for other data to argue they shouldnt be that small. 
+
+### Older notes
 There are both "training" blocks, "practice" blocks (1,8,15, which I think were the first block of each day?), and "transfer" blocks (vary with day condition).
 
 Ultimately want to analyze data broken down by:
@@ -34,7 +43,7 @@ We would also want to have the parameters for transfer for each target position 
 Finally, we would like to have parameters for the last epoch of training for each subject in the 1-, 2-, and 3-day conditions. An epoch is defined as 3 blocks.
 "
 
-Complications for interpretation of the data:
+## Complications for interpretation of the data:
 
 * The participant is allowed to report a stimulus that was not presented
 * The participant is allowed to report 0, meaning they saw no target
@@ -42,3 +51,7 @@ Complications for interpretation of the data:
 This means that any change in efficacy or the other parameters could be a result of changes in bias rather than any change in attention.
 
 Eventually should do some sort of data analysis to look at false alarms to assess bias changes.
+
+## The code
+
+Why do I need to do the fitting twice? inspectHistsPart1.Rmd uses the raw data and calls *calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream)*, which has to estimate the parameters and create the psychometric curves. But surely I should only estimate the parameters once, rather than also doing it in analyzeAll.Rmd, which seems to also do that (by calling analyzeOneConditionDF for each data subset).

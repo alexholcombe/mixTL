@@ -1,5 +1,12 @@
 
-Add vertical line where SPE=0
+To-do
+* Add vertical line where SPE=0
+
+* On Slack, they said be best to average the blocks for the first day, then average the blocks for the second day.  We would not be analyzing data for the third day.  This way, we are not crossing days when combining data. clarified the grouping is Epochs 1-2 and 3-4 for the 3-Day condition.
+Blocks 2-7 day one 
+9-14 day two
+
+* Restrict the modeling standard deviation to less than 3?  Check sigmas for other data to argue they shouldnt be that small.
 
 SKYPE MEETING 14 June
 

@@ -29,12 +29,12 @@ if (file.exists( fileWithPath )) {
 
 library(dplyr)
 #Exclude trials where target was not presented
-allDays <- allDays %>% filter(targetSP != 0)
 #Exclude other cases where SPE not applicable
 #Response.Pos == False indicates either		a) the participant reported "0"
 # b) there was no target on that trial
 # c) the participant reported a stimulus that was not presented
-allDays <- allDays %>% filter(Response.Pos != FALSE)
+allDays <- allDays %>% filter(targetSP != 0) %>% filter(Response.Pos != FALSE)
+ 
 ```
 
 
@@ -70,7 +70,6 @@ Define function to plot bunch of subjects.
 
 Facets by "Subject+targetSP~Block", meaning that should break the data down by Group and Condition separately.
 
-
 Epoch (groups of 3 blocks) is the smallest group of trials that Shin & Junker want a graph for.
 
 So, create epochs out of group triplets, specifically
@@ -91,13 +90,12 @@ allDays<-allDays %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practi
 ```
 
 
-
 Get ready to plot bunches by fitting data, calculating psychometric curves.   will take up pages and pages of NaN warnings, and takes nearly 12 hours. Then save data so part2 can do the graphs.
 
 ```{r get ready to plot bunches, echo=FALSE, message=FALSE}
 dg <- allDays # %>% filter(Condition=="one_day", Block==2)
 curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
-  do(calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream))
+  do(  mixRSVP::calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream)   )
 save(curves,dg,file='results/inspectHists.Rdata')
 ```
 
