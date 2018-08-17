@@ -110,18 +110,24 @@ data<-data %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice2" |
 condtnVariableNames <- c("Group","Condition","targetSP","Subject","Epoch")  
 ```
 
-Define function to plot bunch of subjects.
-
-Facets by "Subject+targetSP~Block", meaning that should break the data down by Group and Condition separately.
-
-
-Get ready to plot bunches by fitting data, calculating psychometric curves.   will take up pages and pages of NaN warnings, and takes nearly 12 hours. Then save data so part2 can do the graphs.
+Get ready to plot bunches by first estimating the parameters and calculating psychometric curves.   will take up pages and pages of NaN warnings, and takes nearly 12 hours. Then save data so part2 can do the graphs.
 
 ```{r get ready to plot bunches, echo=FALSE, message=FALSE}
 dg <- data # %>% filter(Condition=="one_day", Block==2)
 curves<- dg %>% group_by_at(.vars = condtnVariableNames) %>% 
   do(  mixRSVP::calc_curves_dataframe(.,minSPE,maxSPE,numItemsInStream)   )
-save(curves,dg,file='results/inspectHists.Rdata')
+save(curves,dg,file=file.path('results','inspectHists.Rdata'))
 ```
 
-How do I get the estimates out of this? Or was there a way to send calc_curves_dataframe the estimates?
+Curves saved.
+
+Also get the estimates out of this, by collapsing curves to yield estimates
+```{r}
+condtnVariableNames <- c("Group","Condition","targetSP","Subject","Epoch")  
+estimates<- curves %>% group_by_at(.vars = condtnVariableNames) %>% summarise_all(c("first"))
+estimates[,c("gaussianFreq","guessingFreq","combinedFitFreq")] <- list(NULL) #delete these columns
+
+destination<- file.path("results","estimates.csv")
+library(readr)
+readr::write_csv(estimates, destination)
+```

@@ -24,9 +24,20 @@ curves$practice <- FALSE
 curves<-curves %>% mutate(practice= ifelse(Epoch=="practice1" | Epoch=="practice2" | Epoch=="practice3", TRUE, FALSE))
 ```
 
+Before do whole thing, plot a couple graphs
+```{r}
+  dh<- dg %>% filter(practice==FALSE) #Otherwise graph has too many columns to see the data
+  subjMin = 70
+  subjMax = 70
+  dh<- dh %>% filter(Subject >= subjMin, Subject <= subjMax)
+  curvesThis <- curves %>% filter(Subject >= subjMin, Subject <= subjMax, practice==FALSE)
+  h<-plotBunch(dh,curvesThis,minSPE,maxSPE)
+  show(h)
+```
+
 ```{r, fig.height=100, fig.width=10}
 
-#plotBunch will break down the data by Epoch, Subject, TargetSP
+#plotBunch will break down the data by Epoch, Subject, targetSP
 #So in calling it, we need to loop over only Group and Condition, plus
 #divide the subjects into manageable groups
 

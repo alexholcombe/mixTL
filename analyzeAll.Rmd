@@ -9,10 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
 Exclude trials where target was not presented.
-
 Exclude other cases where SPE not applicable, namely Response.pos == FALSE
 
 * Response.Pos == False indicates either		
